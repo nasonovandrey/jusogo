@@ -34,9 +34,9 @@ func CreateServer(host string, port int) (*Server, error) {
 	}, nil
 }
 
-func DeleteServer(s *Server) {
+func DeleteServer(server *Server) {
 	log.Println("Shutting down the server.")
-	s.connection.Close()
+	server.connection.Close()
 }
 
 func RunServer(server *Server) {
