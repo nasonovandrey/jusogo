@@ -1,7 +1,8 @@
-package client
+package source
 
 import (
 	"net"
+	"time"
 )
 
 type Client struct {
@@ -32,5 +33,8 @@ func DeleteClient(client *Client) {
 }
 
 func RunClient(client *Client) {
-	client.connection.Write([]byte(client.name))
+	for {
+		client.connection.Write([]byte(client.name))
+		time.Sleep(HEARTBEAT)
+	}
 }

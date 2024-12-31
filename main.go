@@ -3,8 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"jusogo/client"
-	"jusogo/server"
+	"jusogo/source"
 	"log"
 	"os"
 )
@@ -25,22 +24,22 @@ func main() {
 	serverAddress := fmt.Sprintf("%s:%d", *host, *port)
 
 	if *mode == "server" {
-		srv, err := server.CreateServer(serverAddress)
+		srv, err := source.CreateServer(serverAddress)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer server.DeleteServer(srv)
-		server.RunServer(srv)
+		defer source.DeleteServer(srv)
+		source.RunServer(srv)
 	} else if *mode == "client" {
 		if *name == "" {
 			log.Fatal("Error: -name flag must be specified for client mode")
 		}
 
-		cln, err := client.CreateClient(*name, serverAddress)
+		cln, err := source.CreateClient(*name, serverAddress)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer client.DeleteClient(cln)
-		client.RunClient(cln)
+		defer source.DeleteClient(cln)
+		source.RunClient(cln)
 	}
 }
