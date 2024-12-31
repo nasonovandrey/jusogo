@@ -23,6 +23,7 @@ func (node Node) String() string {
 }
 
 type Server struct {
+	address    *net.UDPAddr
 	connection *net.UDPConn
 	nodes      map[string]Node
 	mutex      sync.Mutex
@@ -39,6 +40,7 @@ func CreateServer(addrString string) (*Server, error) {
 	}
 	log.Printf("Server listening on %s", addrString)
 	return &Server{
+		address:    address,
 		connection: conn,
 		nodes:      make(map[string]Node),
 	}, nil
@@ -87,21 +89,21 @@ func EvictNodes(server *Server) {
 	}
 }
 
+
 func InitiateP2P(server *Server, nodeNameX, nodeNameY string) (bool, error) {
 	nodeX := server.nodes[nodeNameX]
 	nodeY := server.nodes[nodeNameY]
-	connectionX, err := net.DialUDP("udp", nil, nodeX.address)
+
+	_, err := server.connection.WriteToUDP([]byte(nodeY.address.String()), nodeX.address)
 	if err != nil {
 		return false, err
 	}
-	connectionY, err := net.DialUDP("udp", nil, nodeY.address)
+
+	_, err = server.connection.WriteToUDP([]byte(nodeX.address.String()), nodeY.address)
 	if err != nil {
 		return false, err
 	}
-	connectionX.Write([]byte(nodeY.address.String()))
-	connectionY.Write([]byte(nodeX.address.String()))
-	connectionX.Close()
-	connectionY.Close()
+
 	return true, nil
 }
 

@@ -13,6 +13,7 @@ func main() {
 	host := flag.String("host", "localhost", "Specify the hostname")
 	port := flag.Int("port", 7000, "Specify the port number")
 	name := flag.String("name", "", "Specify the client name (required for client mode)")
+	localport := flag.Int("localport", 0, "Specify the local port for the client (required for client mode)")
 
 	flag.Parse()
 
@@ -34,8 +35,11 @@ func main() {
 		if *name == "" {
 			log.Fatal("Error: -name flag must be specified for client mode")
 		}
+		if *localport == 0 {
+			log.Fatal("Error: -localport flag must be specified for client mode")
+		}
 
-		cln, err := source.CreateClient(*name, serverAddress)
+		cln, err := source.CreateClient(*name, serverAddress, fmt.Sprintf("localhost:%d", *localport))
 		if err != nil {
 			log.Fatal(err)
 		}
