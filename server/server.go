@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -18,8 +17,8 @@ type Server struct {
 	mutex      sync.Mutex
 }
 
-func CreateServer(host string, port int) (*Server, error) {
-	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
+func CreateServer(addrString string) (*Server, error) {
+	addr, err := net.ResolveUDPAddr("udp", addrString)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +26,7 @@ func CreateServer(host string, port int) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Server listening on %s:%d", host, port)
+	log.Printf("Server listening on %s", addrString)
 	return &Server{
 		connection: conn,
 		nodes:      make(map[string]Node),

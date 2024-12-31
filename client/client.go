@@ -9,13 +9,13 @@ type Client struct {
 	connection *net.UDPConn
 }
 
-func CreateClient(name, server string) (*Client, error) {
-	serverAddr, err := net.ResolveUDPAddr("udp", server)
+func CreateClient(name, addrString string) (*Client, error) {
+	addr, err := net.ResolveUDPAddr("udp", addrString)
 	if err != nil {
 		return nil, err
 	}
 
-	connection, err := net.DialUDP("udp", nil, serverAddr)
+	connection, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		return nil, err
 	}
