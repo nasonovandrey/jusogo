@@ -1,8 +1,10 @@
 package source
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,6 +16,10 @@ import (
 type Node struct {
 	addr     *net.UDPAddr
 	lastSeen time.Time
+}
+
+func (node Node) String() string {
+	return fmt.Sprintf("address=%s lastSeen=%s", node.addr, node.lastSeen.Format("2006-01-02T15:04:00"))
 }
 
 type Server struct {
@@ -81,16 +87,32 @@ func EvictNodes(server *Server) {
 	}
 }
 
+func RunHttp(server *Server) {
+	http.HandleFunc("/query", func(writer http.ResponseWriter, request *http.Request) {
+		var output string
+		for nodeName, node := range server.nodes {
+			output += fmt.Sprintf("nodeName=%s %s\n", nodeName, node)
+		}
+		writer.Write([]byte(output))
+	})
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func RunServer(server *Server) {
 	log.Println("Server is running and ready to receive data.")
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// These things spam on shutdown. Perhaps they 
+	// These things spam on shutdown. Perhaps they
 	// should read from a channel too and shutdown gracefully
 	go UpdateNodes(server)
 	go EvictNodes(server)
+
+	// Separate web service for querying
+	go RunHttp(server)
 
 	<-done
 
