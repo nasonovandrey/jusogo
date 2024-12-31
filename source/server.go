@@ -14,12 +14,12 @@ import (
 )
 
 type Node struct {
-	addr     *net.UDPAddr
+	address  *net.UDPAddr
 	lastSeen time.Time
 }
 
 func (node Node) String() string {
-	return fmt.Sprintf("address=%s lastSeen=%s", node.addr, node.lastSeen.Format("2006-01-02T15:04:00"))
+	return fmt.Sprintf("address=%s lastSeen=%s", node.address, node.lastSeen.Format("2006-01-02T15:04:00"))
 }
 
 type Server struct {
@@ -29,11 +29,11 @@ type Server struct {
 }
 
 func CreateServer(addrString string) (*Server, error) {
-	addr, err := net.ResolveUDPAddr("udp", addrString)
+	address, err := net.ResolveUDPAddr("udp", addrString)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := net.ListenUDP("udp", addr)
+	conn, err := net.ListenUDP("udp", address)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +67,8 @@ func UpdateNodes(server *Server) {
 		}
 
 		server.mutex.Lock()
-		server.nodes[nodeName] = Node{addr: remoteAddr, lastSeen: time.Now()}
-		log.Printf("Registered client: %s from %v", nodeName, remoteAddr)
+		server.nodes[nodeName] = Node{address: remoteAddr, lastSeen: time.Now()}
+		log.Printf("Registered node: %s from %v", nodeName, remoteAddr)
 		server.mutex.Unlock()
 	}
 }
@@ -79,12 +79,30 @@ func EvictNodes(server *Server) {
 		for nodeName, node := range server.nodes {
 			if time.Now().Sub(node.lastSeen) > TIMEOUT {
 				delete(server.nodes, nodeName)
-				log.Printf("Client %s last seen %v. Removing.", nodeName, node.lastSeen)
+				log.Printf("Node %s last seen %v. Removing.", nodeName, node.lastSeen)
 			}
 		}
 		server.mutex.Unlock()
 		time.Sleep(TIMEOUT)
 	}
+}
+
+func InitiateP2P(server *Server, nodeNameX, nodeNameY string) (bool, error) {
+	nodeX := server.nodes[nodeNameX]
+	nodeY := server.nodes[nodeNameY]
+	connectionX, err := net.DialUDP("udp", nil, nodeX.address)
+	if err != nil {
+		return false, err
+	}
+	connectionY, err := net.DialUDP("udp", nil, nodeY.address)
+	if err != nil {
+		return false, err
+	}
+	connectionX.Write([]byte(nodeY.address.String()))
+	connectionY.Write([]byte(nodeX.address.String()))
+	connectionX.Close()
+	connectionY.Close()
+	return true, nil
 }
 
 func RunHttp(server *Server) {
@@ -94,6 +112,13 @@ func RunHttp(server *Server) {
 			output += fmt.Sprintf("nodeName=%s %s\n", nodeName, node)
 		}
 		writer.Write([]byte(output))
+	})
+	http.HandleFunc("/connect", func(writer http.ResponseWriter, request *http.Request) {
+		request.ParseForm()
+		nodeNameX := request.FormValue("X")
+		nodeNameY := request.FormValue("Y")
+		log.Printf("%s %s\n", nodeNameX, nodeNameY)
+		InitiateP2P(server, nodeNameX, nodeNameY)
 	})
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
@@ -112,6 +137,8 @@ func RunServer(server *Server) {
 	go EvictNodes(server)
 
 	// Separate web service for querying
+	// This is highly optional at this point, I'm not sure how
+	// connection between nodes should be initiated at this point
 	go RunHttp(server)
 
 	<-done
