@@ -26,6 +26,7 @@ func CreateClient(name, remoteAddrString, localAddrString string) (*Client, erro
 		return nil, err
 	}
 
+	log.Printf("Creating connection from %s to %s.", localAddr.String(), remoteAddr.String())
 	connection, err := net.DialUDP("udp", localAddr, remoteAddr)
 	if err != nil {
 		return nil, err
@@ -57,9 +58,10 @@ func ReadFromServer(client *Client) {
 		if err != nil {
 			log.Println("Error reading from UDP:", err)
 		} else {
-			peerAddress, err := net.ResolveUDPAddr("udp", string(buffer[:bytes_read]))
+			udpAddress := string(buffer[:bytes_read])
+			peerAddress, err := net.ResolveUDPAddr("udp", udpAddress)
 			if err != nil {
-				log.Println("Error resolving UDP:", err)
+				log.Println("Error resolving UDP:", err, udpAddress)
 			}
 			client.connection.Close()
 			EstablishP2PChat(client.address, peerAddress)
@@ -68,6 +70,7 @@ func ReadFromServer(client *Client) {
 }
 
 func EstablishP2PChat(localAddr, remoteAddr *net.UDPAddr) {
+	log.Printf("Creating connection from %s to %s.", localAddr.String(), remoteAddr.String())
 	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
 	if err != nil {
 		log.Fatal(err)

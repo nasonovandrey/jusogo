@@ -89,16 +89,17 @@ func EvictNodes(server *Server) {
 	}
 }
 
-
 func InitiateP2P(server *Server, nodeNameX, nodeNameY string) (bool, error) {
 	nodeX := server.nodes[nodeNameX]
 	nodeY := server.nodes[nodeNameY]
 
+	log.Printf("Going to send address of node Y %s to node X %s", nodeY.address.String(), nodeX.address.String())
 	_, err := server.connection.WriteToUDP([]byte(nodeY.address.String()), nodeX.address)
 	if err != nil {
 		return false, err
 	}
 
+	log.Printf("Going to send address of node X %s to node Y %s", nodeX.address.String(), nodeY.address.String())
 	_, err = server.connection.WriteToUDP([]byte(nodeX.address.String()), nodeY.address)
 	if err != nil {
 		return false, err
@@ -120,7 +121,10 @@ func RunHttp(server *Server) {
 		nodeNameX := request.FormValue("X")
 		nodeNameY := request.FormValue("Y")
 		log.Printf("%s %s\n", nodeNameX, nodeNameY)
-		InitiateP2P(server, nodeNameX, nodeNameY)
+		_, err := InitiateP2P(server, nodeNameX, nodeNameY)
+		if err != nil {
+			log.Printf("Could not initiate p2p connection due to %s", err)
+		}
 	})
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
